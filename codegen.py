@@ -34,18 +34,15 @@ class Construct(object):
         return '\n}'
 
     def _return(self):
-        freeVar = ''
         variables = ''
         body = self._getBody()
         if len(self.vars) > 0:
             for i in self.vars:
-                if self.vars[i][2] != '': # требуется освобождение
-                    freeVar += '\n\t' + "\n\t".join([ self.vars[i][2] + '( ' + i + ' );' ])
                 initVar = ''
                 if self.vars[i][1] != '': # требуется инициализация
                     initVar = ' = ' + self.vars[i][1]
                 variables += '\n\t' + "\n\t".join([ self.vars[i][0] + ' ' + i + initVar + ';' ])
-        return self.definition + variables + body + freeVar + self._end()
+        return self.definition + variables + body + self._end()
 
     def __add__(self, other):
         """
@@ -81,22 +78,11 @@ class Construct(object):
             self.definition = prefix + ' ' + self.definition
             self.prefix = True
 
-    def addVar(self, typeVar, nameVar, initVar = 'tcg_temp_new()', freeVar = 'tcg_temp_free'):
+    def addVar(self, typeVar, nameVar, initVar = ''):
         """
         """
-        if self._conditionTCG and initVar == 'tcg_temp_new()':
-            initVar = 'tcg_temp_local_new()'
-        self.vars.update({nameVar : [typeVar, initVar, freeVar]})
+        self.vars.update({nameVar : [typeVar, initVar]})
 
-    def startConditionTCG(self):
-        """
-        """
-        self._conditionTCG = True
-
-    def endConditionTCG(self):
-        """
-        """
-        self._conditionTCG = False
 
 class Macros(Construct):
     """
@@ -177,7 +163,6 @@ class Function(Construct):
         """
         self.names = []
         self.vars = {}
-        self._conditionTCG = False
         self._name = name
         self.definition = type + ' ' + name + '(' + ', '.join(argv) + ') {'
         self.body = ''
@@ -377,7 +362,6 @@ class If(Construct):
         """
         self.names = []
         self.vars = {}
-        self._conditionTCG = False
         self._else = False
         if cond:
             cond = ' ' + cond
