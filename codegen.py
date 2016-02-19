@@ -16,8 +16,16 @@ class Construct(object):
             Добавление конструкции внутрь данной конструкции
         """
         if not item._name in self.names:
-            self.body += '\n\t' + "\n\t".join(item.__str__().split('\n'))
+            self.detailes.append(item)
             self.names.append(item._name)
+
+    def _getBody(self):
+        """
+        """
+        body = ''
+        for item in self.detailes:
+            body += '\n\t' + "\n\t".join(item.__str__().split('\n'))
+        return body
 
     def _end(self):
         """
@@ -25,9 +33,10 @@ class Construct(object):
         """
         return '\n}'
 
-    def _return(self, other = ''):
+    def _return(self):
         freeVar = ''
         variables = ''
+        body = self._getBody()
         if len(self.vars) > 0:
             for i in self.vars:
                 if self.vars[i][2] != '': # требуется освобождение
@@ -36,12 +45,17 @@ class Construct(object):
                 if self.vars[i][1] != '': # требуется инициализация
                     initVar = ' = ' + self.vars[i][1]
                 variables += '\n\t' + "\n\t".join([ self.vars[i][0] + ' ' + i + initVar + ';' ])
-        return self.definition + variables + self.body + freeVar + self._end() + other
+        return self.definition + variables + body + freeVar + self._end()
 
     def __add__(self, other):
         """
         """
-        return self._return(other)
+        return self._return() + other
+
+    def __radd__(self, other):
+        """
+        """
+        return other + self._return()
 
     def __str__(self):
         """
@@ -84,44 +98,33 @@ class Construct(object):
         """
         self._conditionTCG = False
 
-
-class Macros(object):
+class Macros(Construct):
     """
         Базовый класс для конструкций вида #macro
     """
-    def __new__(cls, *args, **kwargs):
-        """
-        """
-        return super(Macros, cls).__new__(cls)
-
-    def _return(self, other = ''):
-        return self.definition + self.body + self._end() + other
-
     def add(self, item):
         """
-            Добавление конструкции внутрь данной конструкции (только #ifdef, #ifndef)
+            В конструкцию невозможно добавлять другие конструкции
         """
-        if not item._name in self.names:
-            self.body += '\n' + "\n".join(item.__str__().split('\n'))
-            self.names.append(item._name)
+        pass
 
-    def __add__(self, other):
-        """
-        """
-        return self._return(other)
+    def _return(self):
+        body = self._getBody()
+        return self.definition + body + self._end()
 
-    def __str__(self):
+    def _getBody(self):
         """
-            Генерация строки конструкции
         """
-        return self._return()
+        body = ''
+        for item in self.detailes:
+            body += '\n' + "\n".join(item.__str__().split('\n'))
+        return body
 
     def _end(self):
         """
             Окончание конструкции
         """
         return ''
-
 
 class Source(Construct):
     """
@@ -134,14 +137,23 @@ class Source(Construct):
         self.vars = {}
         self.definition = ''
         self.body = ''
+        self.detailes = []
 
     def add(self, item):
         """
             Переопределенный метод для иного добавления подконструкций
         """
         if not item._name in self.names:
-            self.body += '\n' + item.__str__() + '\n'
+            self.detailes.append(item)
             self.names.append(item._name)
+
+    def _getBody(self):
+        """
+        """
+        body = ''
+        for item in self.detailes:
+            body += '\n' + item.__str__() + '\n'
+        return body
 
     def _end(self):
         """
@@ -169,6 +181,7 @@ class Function(Construct):
         self._name = name
         self.definition = type + ' ' + name + '(' + ', '.join(argv) + ') {'
         self.body = ''
+        self.detailes = []
 
     def changeDefinition(self, type = 'void', name = 'main', argv = ['void']):
         """
@@ -180,20 +193,22 @@ class Struct(Construct):
     """
         Класс для описания структур
     """
-    def __init__(self, name):
+    def __init__(self, name, declaretion = True):
         """
         """
         self.names = []
         self.vars = {}
         self._name = name
+        self.declaretion = declaretion
         self.definition = 'struct ' + self._name + ' {'
         self.body = ''
+        self.detailes = []
 
     def _end(self):
         """
             Переопределенный метод для иного завершения конструкции
         """
-        return '\n} ' + self._name + ';'
+        return '\n}' + (' ' + self._name)*self.declaretion + ';'
 
 
 class Line(Construct):
@@ -205,9 +220,11 @@ class Line(Construct):
         """
         self.names = []
         self.vars = {}
-        self.definition = (type)*(type != '') + (' ' + name)*(name != '') + (' ' + operator)*(operator != '') + (' ' + _name)*(_name != '')
+        self.definition = type + ' ' + name + ' ' + operator + ' ' + _name
         self._name = self.definition
+        self.definition = self.definition.strip(' ')
         self.body = ''
+        self.detailes = []
         self.nosep = nosep
 
     def add(self, item):
@@ -239,6 +256,7 @@ class Comment(Construct):
         self._name = self.definition
         self.definition = self.definition.strip()
         self.body = ''
+        self.detailes = []
 
     def add(self, item):
         pass
@@ -265,82 +283,62 @@ class Define(Macros):
         self._name = self.definition
         self.definition = self.definition.strip()
         self.body = ''
-
-    def add(self, item):
-        """
-            В конструкцию невозможно добавлять другие конструкции
-        """
-        pass
-
-    def _end(self):
-        """
-            Переопределенный метод для иного завершения конструкции
-        """
-        return ''
-
+        self.detailes = []
 
 class Ifdef(Macros):
     """
         Класс для описания #ifdef
     """
-    def __init__(self, name = ''):
+    def __init__(self, name = '', negative = False):
         """
         """
-        self.names = []
-        self.definition = '#ifdef ' + name
-        self._name = self.definition
-        self.definition = self.definition.strip()
-        self.body = ''
-        self._else = False
-
-    def addElse(self, item = ''):
-        """
-            Добавление ветки Else
-        """
-        if self._else == False:
-            self.body += '\n#else'
-            item._name += ' else'
-            super(Ifdef, self).add(item)
-            self._else = True
-
-    def _end(self):
-        """
-            Переопределенный метод для иного завершения конструкции
-        """
-        return '\n#endif'
-
-
-class Ifndef(Macros):
-    """
-        Класс для описания #ifndef
-    """
-    def __init__(self, name = ''):
-        """
-        """
-        self.names = []
-        self.definition = '#ifndef ' + name
         self.name = name
+        self.names = []
+        self.definition = '#ifdef '*(not negative) + '#ifndef '*negative + name
         self._name = self.definition
         self.definition = self.definition.strip()
         self.body = ''
         self._else = False
+        self.elses = []
+        self.detailes = []
+        self.negative = negative
+
+    def add(self, item):
+        """
+            Добавление конструкции внутрь данной конструкции
+        """
+        if not item._name in self.names:
+            self.detailes.append(item)
+            self.names.append(item._name)
+
+    def _getBody(self):
+        """
+        """
+        body = ''
+        for item in self.detailes:
+            body += '\n' + "\n".join(item.__str__().split('\n'))
+        if self.elses != []:
+            body += '\n#else'
+            for item in self.elses:
+                body += '\n' + "\n".join(item.__str__().split('\n'))
+        return body
 
     def addElse(self, item = ''):
         """
             Добавление ветки Else
         """
-        if self._else == False:
-            self.body += '\n#else'
+        if not self._else:
             item._name += ' else'
-            super(Ifdef, self).add(item)
+            if not item._name in self.names:
+                self.elses.append(item)
+                self.names.append(item._name)
             self._else = True
 
     def _end(self):
         """
             Переопределенный метод для иного завершения конструкции
         """
-        return '\n#endif // ' + self.name
-
+        return '\n#endif' + (' // ' + self.name)*self.negative
 
 class Include(Macros):
     """
@@ -354,19 +352,7 @@ class Include(Macros):
         self._name = self.definition
         self.definition = self.definition.strip()
         self.body = ''
-
-    def add(self, item):
-        """
-            В конструкцию невозможно добавлять другие конструкции
-        """
-        pass
-
-    def _end(self):
-        """
-            Переопределенный метод для иного завершения конструкции
-        """
-        return ''
-
+        self.detailes = []
 
 class Pragma(Macros):
     """
@@ -380,19 +366,7 @@ class Pragma(Macros):
         self._name = self.definition
         self.definition = self.definition.strip()
         self.body = ''
-
-    def add(self, item):
-        """
-            В конструкцию невозможно добавлять другие конструкции
-        """
-        pass
-
-    def _end(self):
-        """
-            Переопределенный метод для иного завершения конструкции
-        """
-        return ''
-
+        self.detailes = []
 
 class If(Construct):
     """
@@ -413,7 +387,9 @@ class If(Construct):
         self._name = self.definition
         self.needBrace = True
         self.needEndBrace = True
-        self.body = ''
+        self.detailes = []
+        self.elses = []
+        self.elseIfs = []
         self.needReturn = False
 
     def changeCond(self, arg1, cond = '', arg2 = ''):
@@ -426,33 +402,48 @@ class If(Construct):
         self.definition = 'if (' + arg1 + cond + arg2 + ') {'
         self._name = self.definition
 
+    def _getBody(self):
+        """
+        """
+        body = ''
+        for item in self.detailes:
+            body += '\n\t' + "\n\t".join(item.__str__().split('\n'))
+        if self.elses != []:
+            body += '\n'
+            if self.needBrace:
+                body += '} '
+                self.needBrace = False
+            body += 'else {'
+            self.needEndBrace = True
+            for item in self.elses:
+                body += '\n\t' + "\n\t".join(item.__str__().split('\n'))
+        for item in self.elseIfs:
+            body += '\n'
+            if self.needBrace:
+                body += '} '
+                self.needBrace = False
+            body += 'else '
+            self.needEndBrace = False
+            body += '\n\t' + "\n\t".join(item.__str__().split('\n'))
+        return body
+
     def addElse(self, item = ''):
         """
             Добавление ветки Else
         """
-        if self._else == False:
-            self.body += '\n'
-            if self.needBrace:
-                self.body += '} '
-                self.needBrace = False
-            self.body += 'else {'
-            self.needEndBrace = True
         item._name += ' else'
-        super(If, self).add(item)
-        self._else = True
+        if not item._name in self.names:
+            self.elses.append(item)
+            self.names.append(item._name)
 
-    def addElseIf(self, itemIf = ''):
+    def addElseIf(self, item = ''):
         """
             Добавление ветки Else IF
         """
-        self.body += '\n'
-        if self.needBrace:
-            self.body += '} '
-            self.needBrace = False
-        self.body += 'else '
-        self.needEndBrace = False
-        itemIf._name += ' else'
-        super(If, self).add(itemIf)
+        item._name += ' else'
+        if not item._name in self.names:
+            self.elseIfs.append(item)
+            self.names.append(item._name)
 
     def addReturn(self):
         """
@@ -479,7 +470,7 @@ class For(Construct):
         self.vars = {}
         self.definition = 'for (' + expression1 + '; ' + expression2 + '; ' + expression3 + ') {'
         self._name = self.definition
-        self.body = ''
+        self.detailes = []
 
 
 class While(Construct):
@@ -493,7 +484,7 @@ class While(Construct):
         self.vars = {}
         self.definition = 'while (' + expression + ') {'
         self._name = self.definition
-        self.body = ''
+        self.detailes = []
 
 
 class DoWhile(Construct):
@@ -508,7 +499,7 @@ class DoWhile(Construct):
         self.expression = expression
         self.definition = 'do {'
         self._name = self.definition + expression
-        self.body = ''
+        self.detailes = []
 
     def _end(self):
         """
@@ -526,30 +517,38 @@ class Switch(Construct):
         """
         self.names = []
         self.vars = {}
-        self._default = False
+        self._default = ''
         self.definition = 'switch (' + arg + ') {'
         self._name = self.definition
-        self.body = ''
+        self.detailes = []
 
     def add(self, arg, item = ''):
         """
             Переопределенный метод для иного добавления подконструкции
         """
         if not arg in self.names:
-            self.body += '\n\tcase ' + arg + ':'
-            self.body += '\n\t\t' + "\n\t\t".join(item.__str__().split('\n'))# + ';'
-            self.body += '\n\t\tbreak;'
+            self.detailes.append([arg, item])
             self.names.append(arg)
+
+    def _getBody(self):
+        """
+        """
+        body = ''
+        for item in self.detailes:
+            body += '\n\tcase ' + item[0] + ':'
+            body += '\n\t\t' + "\n\t\t".join(item[1].__str__().split('\n'))# + ';'
+            body += '\n\t\tbreak;'
+        body += self._default
+        return body
 
     def addDefault(self, item = ''):
         """
             Добавление блока default
         """
-        if self._default:
+        if self._default != '':
             return
-        self.body += '\n\tdefault:'
-        super(Switch, self).add(item)
-        self._default = True
+        self._default = '\n\tdefault:'
+        self._default += '\n\t\t' + "\n\t\t".join(item.__str__().split('\n'))
 
 
 class Calls(Construct):
@@ -563,7 +562,7 @@ class Calls(Construct):
         self.vars = {}
         self._name = name
         self.definition = name + '(' + ', '.join(argv) + ')'
-        self.body = ''
+        self.detailes = []
 
     def _end(self):
         """
@@ -582,16 +581,24 @@ class Union(Construct):
         self.vars = {}
         self.definition = ''
         self._name = item
-        self.body = str(item)
+        self.detailes = [item]
 
     def add(self, item):
         """
             Переопределенный метод для иного добавления подконструкции
         """
         self._name += ';' + str(item)
-        if self.body != '':
-            self.body += '\n'
-        self.body += str(item)
+        self.detailes.append(item)
+
+    def _getBody(self):
+        """
+        """
+        body = ''
+        for item in self.detailes:
+            if body != '':
+                body += '\n'
+            body += str(item)
+        return body
 
     def _end(self):
         """
