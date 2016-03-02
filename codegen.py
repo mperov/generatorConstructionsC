@@ -460,6 +460,14 @@ class If(Construct):
         body = ''
         for item in self.detailes:
             body += '\n\t' + "\n\t".join(item.__str__().split('\n'))
+        for item in self.elseIfs:
+            body += '\n'
+            if needBrace:
+                body += '} '
+                needBrace = False
+            body += 'else '
+            needEndBrace = False
+            body += '\n\t' + "\n\t".join(item.__str__().split('\n'))
         if self.elses != []:
             body += '\n'
             if needBrace:
@@ -469,14 +477,6 @@ class If(Construct):
             needEndBrace = True
             for item in self.elses:
                 body += '\n\t' + "\n\t".join(item.__str__().split('\n'))
-        for item in self.elseIfs:
-            body += '\n'
-            if needBrace:
-                body += '} '
-                needBrace = False
-            body += 'else '
-            needEndBrace = False
-            body += '\n\t' + "\n\t".join(item.__str__().split('\n'))
         return body
 
     def addElse(self, item = ''):
@@ -490,6 +490,8 @@ class If(Construct):
         """
             Добавление ветки Else IF
         """
+        if type(item) != If:
+            raise Exception('Item isn\'t instance of the class If')
         if not item in self.elseIfs:
             self.elseIfs.append(item)
 
