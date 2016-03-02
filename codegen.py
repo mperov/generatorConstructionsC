@@ -369,7 +369,7 @@ class Ifdef(Macros):
         """
             Переопределенный метод для иного завершения конструкции
         """
-        return '\n#endif' + (' // ' + self._name)*self.negative
+        return '\n#endif' + (' // ' + self._name)*self._negative
 
 class Include(Macros):
     """
