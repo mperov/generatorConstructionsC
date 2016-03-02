@@ -471,25 +471,27 @@ class If(Construct):
     def _getBody(self):
         """
         """
+        needBrace = self.needBrace
+        needEndBrace = self.needEndBrace
         body = ''
         for item in self.detailes:
             body += '\n\t' + "\n\t".join(item.__str__().split('\n'))
         if self.elses != []:
             body += '\n'
-            if self.needBrace:
+            if needBrace:
                 body += '} '
-                self.needBrace = False
+                needBrace = False
             body += 'else {'
-            self.needEndBrace = True
+            needEndBrace = True
             for item in self.elses:
                 body += '\n\t' + "\n\t".join(item.__str__().split('\n'))
         for item in self.elseIfs:
             body += '\n'
-            if self.needBrace:
+            if needBrace:
                 body += '} '
-                self.needBrace = False
+                needBrace = False
             body += 'else '
-            self.needEndBrace = False
+            needEndBrace = False
             body += '\n\t' + "\n\t".join(item.__str__().split('\n'))
         return body
 
