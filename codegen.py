@@ -428,7 +428,8 @@ class If(Construct):
             cond = ' ' + cond
         if arg2:
             arg2 = ' ' + arg2
-        self.definition = 'if (' + str(self._arg1) + str(self._cond) + str(self._arg2) + ') {'
+        self.definition = 'if (' + str(self._arg1) + ' ' + str(self._cond) + ' ' + str(self._arg2) + ') {'
+        self.definition = self.definition.strip(' ')
         self.needBrace = True
         self.needEndBrace = True
         self.detailes = []
