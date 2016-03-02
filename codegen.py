@@ -628,7 +628,7 @@ class Switch(Construct):
         self._default += '\n\t\t' + "\n\t\t".join(item.__str__().split('\n'))
 
 
-class Calls(Construct):
+class Call(Construct):
     """
         Класс для описания вызовов функций и процедур
     """
@@ -638,7 +638,7 @@ class Calls(Construct):
         self.vars = {}
         self._name = name
         self._argv = argv
-        self.definition = self._name + '(' + ', '.join(self._argv) + ')'
+        self.definition = name + '(' + ', '.join(str(x) for x in argv) + ')'
         self.detailes = []
 
     def __copy__(self):
