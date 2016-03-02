@@ -40,6 +40,7 @@ if __name__ == "__main__":
     switch.addDefault(Line('', 'HelloWorld', '=', '\'\\0\''))
     _while.add(switch)
     doWhile.add(_while)
+    doWhile.add(Call("hi", ['1', Call("hi", ['1', '2'])]))
     func.add(doWhile)
     source = Source()
     source.add(Pragma("warning(disable:4047)"))

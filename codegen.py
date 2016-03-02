@@ -384,7 +384,7 @@ class Ifdef(Macros):
         """
             Переопределенный метод для иного завершения конструкции
         """
-        return '\n#endif' + (' // ' + self._name)*self.negative
+        return '\n#endif' + (' // ' + self._name)*self._negative
 
 class Include(Macros):
     """
@@ -476,6 +476,14 @@ class If(Construct):
         body = ''
         for item in self.detailes:
             body += '\n\t' + "\n\t".join(item.__str__().split('\n'))
+        for item in self.elseIfs:
+            body += '\n'
+            if needBrace:
+                body += '} '
+                needBrace = False
+            body += 'else '
+            needEndBrace = False
+            body += '\n\t' + "\n\t".join(item.__str__().split('\n'))
         if self.elses != []:
             body += '\n'
             if needBrace:
@@ -485,14 +493,6 @@ class If(Construct):
             needEndBrace = True
             for item in self.elses:
                 body += '\n\t' + "\n\t".join(item.__str__().split('\n'))
-        for item in self.elseIfs:
-            body += '\n'
-            if needBrace:
-                body += '} '
-                needBrace = False
-            body += 'else '
-            needEndBrace = False
-            body += '\n\t' + "\n\t".join(item.__str__().split('\n'))
         return body
 
     def addElse(self, item = ''):
@@ -506,6 +506,8 @@ class If(Construct):
         """
             Добавление ветки Else IF
         """
+        if type(item) != If:
+            raise Exception('Item isn\'t instance of the class If')
         if not item in self.elseIfs:
             self.elseIfs.append(item)
 
@@ -642,7 +644,7 @@ class Switch(Construct):
         self._default += '\n\t\t' + "\n\t\t".join(item.__str__().split('\n'))
 
 
-class Calls(Construct):
+class Call(Construct):
     """
         Класс для описания вызовов функций и процедур
     """
@@ -652,7 +654,7 @@ class Calls(Construct):
         self.vars = {}
         self._name = name
         self._argv = argv
-        self.definition = self._name + '(' + ', '.join(self._argv) + ')'
+        self.definition = name + '(' + ', '.join(str(x) for x in argv) + ')'
         self.detailes = []
 
     def __copy__(self):
