@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+from copy import copy
 
 class Construct(object):
     """
@@ -15,9 +16,9 @@ class Construct(object):
         """
             Добавление конструкции внутрь данной конструкции
         """
-        if not item._name in self.names:
+        item = copy(item)
+        if not item in self.detailes:
             self.detailes.append(item)
-            self.names.append(item._name)
 
     def _getBody(self):
         """
@@ -46,6 +47,13 @@ class Construct(object):
                     initVar = ' = ' + self.vars[i][1]
                 variables += '\n\t' + "\n\t".join([ self.vars[i][0] + ' ' + i + initVar + ';' ])
         return self.definition + variables + body + freeVar + self._end()
+
+    def __copy__(self):
+        """
+        """
+        newone = type(self)()
+        newone.__dict__.update(self.__dict__)
+        return newone
 
     def __add__(self, other):
         """
@@ -133,7 +141,6 @@ class Source(Construct):
     def __init__(self):
         """
         """
-        self.names = []
         self.vars = {}
         self.definition = ''
         self.body = ''
@@ -143,9 +150,9 @@ class Source(Construct):
         """
             Переопределенный метод для иного добавления подконструкций
         """
-        if not item._name in self.names:
+        item = copy(item)
+        if not item in self.detailes:
             self.detailes.append(item)
-            self.names.append(item._name)
 
     def _getBody(self):
         """
@@ -175,13 +182,21 @@ class Function(Construct):
     def __init__(self, type = 'void', name = 'main', argv = ['void']):
         """
         """
-        self.names = []
         self.vars = {}
         self._conditionTCG = False
+        self._type = type
         self._name = name
-        self.definition = type + ' ' + name + '(' + ', '.join(argv) + ') {'
+        self._argv = argv
+        self.definition = self._type + ' ' + self._name + '(' + ', '.join(self._argv) + ') {'
         self.body = ''
         self.detailes = []
+
+    def __copy__(self):
+        """
+        """
+        newone = type(self)(self._type, self._name, self._argv)
+        newone.__dict__.update(self.__dict__)
+        return newone
 
     def changeDefinition(self, type = 'void', name = 'main', argv = ['void']):
         """
@@ -196,19 +211,25 @@ class Struct(Construct):
     def __init__(self, name, declaretion = True):
         """
         """
-        self.names = []
         self.vars = {}
         self._name = name
-        self.declaretion = declaretion
+        self._declaretion = declaretion
         self.definition = 'struct ' + self._name + ' {'
         self.body = ''
         self.detailes = []
+
+    def __copy__(self):
+        """
+        """
+        newone = type(self)(self._name, self._declaretion)
+        newone.__dict__.update(self.__dict__)
+        return newone
 
     def _end(self):
         """
             Переопределенный метод для иного завершения конструкции
         """
-        return '\n}' + (' ' + self._name)*self.declaretion + ';'
+        return '\n}' + (' ' + self._name)*self._declaretion + ';'
 
 
 class Line(Construct):
@@ -218,14 +239,23 @@ class Line(Construct):
     def __init__(self, type = '', name = '', operator = '', _name = '', nosep = False):
         """
         """
-        self.names = []
         self.vars = {}
-        self.definition = type + ' ' + name + ' ' + operator + ' ' + _name
-        self._name = self.definition
+        self._type = type
+        self._name = name
+        self._operator = operator
+        self.__name = _name
+        self._nosep = nosep
+        self.definition = self._type + ' ' + self._name + ' ' + self._operator + ' ' + self.__name
         self.definition = self.definition.strip(' ')
         self.body = ''
         self.detailes = []
-        self.nosep = nosep
+
+    def __copy__(self):
+        """
+        """
+        newone = type(self)(self._type, self._name, self._operator, self.__name, self._nosep)
+        newone.__dict__.update(self.__dict__)
+        return newone
 
     def add(self, item):
         """
@@ -237,7 +267,7 @@ class Line(Construct):
         """
             Переопределенный метод для иного завершения конструкции
         """
-        if self.nosep:
+        if self._nosep:
             return ''
         else:
             return ';'
@@ -250,13 +280,19 @@ class Comment(Construct):
     def __init__(self, name = ''):
         """
         """
-        self.names = []
         self.vars = {}
-        self.definition = '//\n// ' + name
-        self._name = self.definition
+        self._name = name
+        self.definition = '//\n// ' + self._name
         self.definition = self.definition.strip()
         self.body = ''
         self.detailes = []
+
+    def __copy__(self):
+        """
+        """
+        newone = type(self)(self._name)
+        newone.__dict__.update(self.__dict__)
+        return newone
 
     def add(self, item):
         pass
@@ -275,15 +311,22 @@ class Define(Macros):
     def __init__(self, name = '', _name = ''):
         """
         """
-        self.names = []
+        self._name = name
+        self.__name = _name
         if _name == '':
-            self.definition = '#define ' + name
+            self.definition = '#define ' + self._name
         else:
-            self.definition = '#define ' + name + ' ' + _name
-        self._name = self.definition
+            self.definition = '#define ' + self._name + ' ' + self.__name
         self.definition = self.definition.strip()
         self.body = ''
         self.detailes = []
+
+    def __copy__(self):
+        """
+        """
+        newone = type(self)(self._name, self.__name)
+        newone.__dict__.update(self.__dict__)
+        return newone
 
 class Ifdef(Macros):
     """
@@ -292,24 +335,29 @@ class Ifdef(Macros):
     def __init__(self, name = '', negative = False):
         """
         """
-        self.name = name
-        self.names = []
-        self.definition = '#ifdef '*(not negative) + '#ifndef '*negative + name
-        self._name = self.definition
+        self._name = name
+        self._negative = negative
+        self.definition = '#ifdef '*(not negative) + '#ifndef '*negative + self._name
         self.definition = self.definition.strip()
         self.body = ''
         self._else = False
         self.elses = []
         self.detailes = []
-        self.negative = negative
+
+    def __copy__(self):
+        """
+        """
+        newone = type(self)(self._name, self._negative)
+        newone.__dict__.update(self.__dict__)
+        return newone
 
     def add(self, item):
         """
             Добавление конструкции внутрь данной конструкции
         """
-        if not item._name in self.names:
+        item = copy(item)
+        if not item in self.detailes:
             self.detailes.append(item)
-            self.names.append(item._name)
 
     def _getBody(self):
         """
@@ -328,17 +376,15 @@ class Ifdef(Macros):
             Добавление ветки Else
         """
         if not self._else:
-            item._name += ' else'
-            if not item._name in self.names:
+            if not item in self.elses:
                 self.elses.append(item)
-                self.names.append(item._name)
             self._else = True
 
     def _end(self):
         """
             Переопределенный метод для иного завершения конструкции
         """
-        return '\n#endif' + (' // ' + self.name)*self.negative
+        return '\n#endif' + (' // ' + self._name)*self.negative
 
 class Include(Macros):
     """
@@ -347,12 +393,18 @@ class Include(Macros):
     def __init__(self, name = ''):
         """
         """
-        self.names = []
-        self.definition = '#include ' + name
-        self._name = self.definition
+        self._name = name
+        self.definition = '#include ' + self._name
         self.definition = self.definition.strip()
         self.body = ''
         self.detailes = []
+
+    def __copy__(self):
+        """
+        """
+        newone = type(self)(self._name)
+        newone.__dict__.update(self.__dict__)
+        return newone
 
 class Pragma(Macros):
     """
@@ -361,12 +413,19 @@ class Pragma(Macros):
     def __init__(self, name = '', _name = ''):
         """
         """
-        self.names = []
-        self.definition = '#pragma ' + name + ' ' + _name
-        self._name = self.definition
+        self._name = name
+        self.__name = _name
+        self.definition = '#pragma ' + self._name + ' ' + self.__name
         self.definition = self.definition.strip()
         self.body = ''
         self.detailes = []
+
+    def __copy__(self):
+        """
+        """
+        newone = type(self)(self._name, self.__name)
+        newone.__dict__.update(self.__dict__)
+        return newone
 
 class If(Construct):
     """
@@ -375,7 +434,9 @@ class If(Construct):
     def __init__(self, arg1, cond = '', arg2 = ''):
         """
         """
-        self.names = []
+        self._arg1 = arg1
+        self._cond = cond
+        self._arg2 = arg2
         self.vars = {}
         self._conditionTCG = False
         self._else = False
@@ -383,14 +444,20 @@ class If(Construct):
             cond = ' ' + cond
         if arg2:
             arg2 = ' ' + arg2
-        self.definition = 'if (' + str(arg1) + str(cond) + str(arg2) + ') {'
-        self._name = self.definition
+        self.definition = 'if (' + str(self._arg1) + str(self._cond) + str(self._arg2) + ') {'
         self.needBrace = True
         self.needEndBrace = True
         self.detailes = []
         self.elses = []
         self.elseIfs = []
         self.needReturn = False
+
+    def __copy__(self):
+        """
+        """
+        newone = type(self)(self._arg1, self._cond, self._arg2)
+        newone.__dict__.update(self.__dict__)
+        return newone
 
     def changeCond(self, arg1, cond = '', arg2 = ''):
         """
@@ -400,7 +467,6 @@ class If(Construct):
         if arg2:
             arg2 = ' ' + arg2
         self.definition = 'if (' + arg1 + cond + arg2 + ') {'
-        self._name = self.definition
 
     def _getBody(self):
         """
@@ -431,19 +497,15 @@ class If(Construct):
         """
             Добавление ветки Else
         """
-        item._name += ' else'
-        if not item._name in self.names:
+        if not item in self.elses:
             self.elses.append(item)
-            self.names.append(item._name)
 
     def addElseIf(self, item = ''):
         """
             Добавление ветки Else IF
         """
-        item._name += ' else'
-        if not item._name in self.names:
+        if not item in self.elseIfs:
             self.elseIfs.append(item)
-            self.names.append(item._name)
 
     def addReturn(self):
         """
@@ -466,11 +528,19 @@ class For(Construct):
     def __init__(self, expression1 = '', expression2 = '', expression3 = ''):
         """
         """
-        self.names = []
+        self._expression1 = expression1
+        self._expression2 = expression2
+        self._expression3 = expression3
         self.vars = {}
-        self.definition = 'for (' + expression1 + '; ' + expression2 + '; ' + expression3 + ') {'
-        self._name = self.definition
+        self.definition = 'for (' + self._expression1 + '; ' + self._expression2 + '; ' + self._expression3 + ') {'
         self.detailes = []
+
+    def __copy__(self):
+        """
+        """
+        newone = type(self)(self._expression1, self._expression2, self._expression3)
+        newone.__dict__.update(self.__dict__)
+        return newone
 
 
 class While(Construct):
@@ -480,11 +550,17 @@ class While(Construct):
     def __init__(self, expression = ''):
         """
         """
-        self.names = []
+        self._expression = expression
         self.vars = {}
-        self.definition = 'while (' + expression + ') {'
-        self._name = self.definition
+        self.definition = 'while (' + self._expression + ') {'
         self.detailes = []
+
+    def __copy__(self):
+        """
+        """
+        newone = type(self)(self._expression)
+        newone.__dict__.update(self.__dict__)
+        return newone
 
 
 class DoWhile(Construct):
@@ -494,18 +570,23 @@ class DoWhile(Construct):
     def __init__(self, expression = ''):
         """
         """
-        self.names = []
         self.vars = {}
-        self.expression = expression
+        self._expression = expression
         self.definition = 'do {'
-        self._name = self.definition + expression
         self.detailes = []
+
+    def __copy__(self):
+        """
+        """
+        newone = type(self)(self._expression)
+        newone.__dict__.update(self.__dict__)
+        return newone
 
     def _end(self):
         """
             Переопределенный метод для иного завершения конструкции
         """
-        return '\n} while (' + self.expression + ');'
+        return '\n} while (' + self._expression + ');'
 
 
 class Switch(Construct):
@@ -515,17 +596,25 @@ class Switch(Construct):
     def __init__(self, arg):
         """
         """
+        self._arg = arg
         self.names = []
         self.vars = {}
         self._default = ''
-        self.definition = 'switch (' + arg + ') {'
-        self._name = self.definition
+        self.definition = 'switch (' + self._arg + ') {'
         self.detailes = []
+
+    def __copy__(self):
+        """
+        """
+        newone = type(self)(self._arg)
+        newone.__dict__.update(self.__dict__)
+        return newone
 
     def add(self, arg, item = ''):
         """
             Переопределенный метод для иного добавления подконструкции
         """
+        item = copy(item)
         if not arg in self.names:
             self.detailes.append([arg, item])
             self.names.append(arg)
@@ -558,11 +647,18 @@ class Calls(Construct):
     def __init__(self, name = 'main', argv = ['void']):
         """
         """
-        self.names = []
         self.vars = {}
         self._name = name
-        self.definition = name + '(' + ', '.join(argv) + ')'
+        self._argv = argv
+        self.definition = self._name + '(' + ', '.join(self._argv) + ')'
         self.detailes = []
+
+    def __copy__(self):
+        """
+        """
+        newone = type(self)(self._name, self._argv)
+        newone.__dict__.update(self.__dict__)
+        return newone
 
     def _end(self):
         """
@@ -577,17 +673,23 @@ class Union(Construct):
     def __init__(self, item = ''):
         """
         """
-        self.names = []
         self.vars = {}
+        self._item = item
         self.definition = ''
-        self._name = item
-        self.detailes = [item]
+        self.detailes = [self._item]
+
+    def __copy__(self):
+        """
+        """
+        newone = type(self)(self._item)
+        newone.__dict__.update(self.__dict__)
+        return newone
 
     def add(self, item):
         """
             Переопределенный метод для иного добавления подконструкции
         """
-        self._name += ';' + str(item)
+        item = copy(item)
         self.detailes.append(item)
 
     def _getBody(self):
