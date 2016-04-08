@@ -217,6 +217,45 @@ class Struct(Construct):
         return '\n}' + (' ' + self._name)*self._declaretion + ';'
 
 
+class Enum(Construct):
+    """
+        Класс для описания перечислений
+    """
+    def __init__(self, name = '', declaration = False):
+        """
+        """
+        self.vars = {}
+        self._name = name
+        self._declaration = declaration
+        self.definition = 'enum {'
+        self.body = ''
+        self.detailes = []
+
+    def __copy__(self):
+        """
+        """
+        newone = type(self)(self._name, self._declaration)
+        newone.__dict__.update(self.__dict__)
+        return newone
+
+    def _return(self):
+        variables = ''
+        body = self._getBody()
+        if len(self.vars) > 0:
+            for i in self.vars:
+                initVar = ''
+                if self.vars[i][1] != '': # требуется инициализация
+                    initVar = ' = ' + self.vars[i][1]
+                variables += '\n\t' + "\n\t".join([ self.vars[i][0] + ' ' + i + initVar + ',' ])
+        return self.definition + variables + body + self._end()
+
+    def _end(self):
+        """
+            Переопределенный метод для иного завершения конструкции
+        """
+        return '\n}' + (' ' + self._name)*self._declaration + ';'
+
+
 class Line(Construct):
     """
         Класс для описания строки
