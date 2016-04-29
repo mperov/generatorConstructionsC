@@ -227,7 +227,7 @@ class Enum(Construct):
         self.vars = {}
         self._name = name
         self._declaration = declaration
-        self.definition = 'enum {'
+        self.definition = 'enum ' + name + ' {'
         self.body = ''
         self.detailes = []
 
