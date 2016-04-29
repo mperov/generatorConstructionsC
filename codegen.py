@@ -193,12 +193,12 @@ class Struct(Construct):
     """
         Класс для описания структур
     """
-    def __init__(self, name, declaretion = True):
+    def __init__(self, name, declaration = True):
         """
         """
         self.vars = {}
         self._name = name
-        self._declaretion = declaretion
+        self._declaration = declaration
         self.definition = 'struct ' + self._name + ' {'
         self.body = ''
         self.detailes = []
@@ -214,7 +214,7 @@ class Struct(Construct):
         """
             Переопределенный метод для иного завершения конструкции
         """
-        return '\n}' + (' ' + self._name)*self._declaretion + ';'
+        return '\n}' + (' ' + self._name)*self._declaration + ';'
 
 
 class Enum(Construct):
