@@ -206,7 +206,7 @@ class Struct(Construct):
     def __copy__(self):
         """
         """
-        newone = type(self)(self._name, self._declaretion)
+        newone = type(self)(self._name, self._declaration)
         newone.__dict__.update(self.__dict__)
         return newone
 
