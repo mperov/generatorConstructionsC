@@ -394,7 +394,7 @@ class Include(Macros):
         """
         """
         self._name = name
-        self.definition = '#include ' + self._name
+        self.definition = '#include "' + self._name + '"'
         self.definition = self.definition.strip()
         self.body = ''
         self.detailes = []
