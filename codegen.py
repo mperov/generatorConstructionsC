@@ -306,7 +306,7 @@ class Comment(Construct):
         """
         self.vars = {}
         self._name = name
-        self.definition = '//\n// ' + self._name
+        self.definition = '/*\n * ' + '\n * '.join(self._name.__str__().split('\n'))
         self.definition = self.definition.strip()
         self.body = ''
         self.detailes = []
@@ -319,13 +319,13 @@ class Comment(Construct):
         return newone
 
     def add(self, item):
-        pass
+        self.definition += '\n * ' + '\n * '.join(item.__str__().split('\n'))
 
     def _end(self):
         """
             Переопределенный метод для иного завершения конструкции
         """
-        return '\n//'
+        return '\n */'
 
 
 class Define(Macros):
