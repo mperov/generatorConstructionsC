@@ -35,15 +35,18 @@ class Construct(object):
         return '\n}'
 
     def _return(self):
+        freeVar = ''
         variables = ''
         body = self._getBody()
         if len(self.vars) > 0:
             for i in self.vars:
+                if self.vars[i][2] != '': # требуется освобождение
+                    freeVar += '\n\t' + "\n\t".join([ self.vars[i][2] + '( ' + i + ' );' ])
                 initVar = ''
                 if self.vars[i][1] != '': # требуется инициализация
                     initVar = ' = ' + self.vars[i][1]
                 variables += '\n\t' + "\n\t".join([ self.vars[i][0] + ' ' + i + initVar + ';' ])
-        return self.definition + variables + body + self._end()
+        return self.definition + variables + body + freeVar + self._end()
 
     def __copy__(self):
         """
@@ -86,11 +89,22 @@ class Construct(object):
             self.definition = prefix + ' ' + self.definition
             self.prefix = True
 
-    def addVar(self, typeVar, nameVar, initVar = ''):
+    def addVar(self, typeVar, nameVar, initVar = 'tcg_temp_new()', freeVar = 'tcg_temp_free'):
         """
         """
-        self.vars.update({nameVar : [typeVar, initVar]})
+        if self._conditionTCG and initVar == 'tcg_temp_new()':
+            initVar = 'tcg_temp_local_new()'
+        self.vars.update({nameVar : [typeVar, initVar, freeVar]})
 
+    def startConditionTCG(self):
+        """
+        """
+        self._conditionTCG = True
+
+    def endConditionTCG(self):
+        """
+        """
+        self._conditionTCG = False
 
 class Macros(Construct):
     """
@@ -170,6 +184,7 @@ class Function(Construct):
         """
         self.vars = {}
         self._type = type
+        self._conditionTCG = False
         self._name = name
         self._argv = argv
         self.definition = self._type + ' ' + self._name + '(' + ', '.join(self._argv) + ') {'
@@ -462,6 +477,7 @@ class If(Construct):
         self._cond = cond
         self._arg2 = arg2
         self.vars = {}
+        self._conditionTCG = False
         self._else = False
         if cond:
             cond = ' ' + cond
