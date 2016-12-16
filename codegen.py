@@ -35,18 +35,15 @@ class Construct(object):
         return '\n}'
 
     def _return(self):
-        freeVar = ''
         variables = ''
         body = self._getBody()
         if len(self.vars) > 0:
             for i in self.vars:
-                if self.vars[i][2] != '': # требуется освобождение
-                    freeVar += '\n\t' + "\n\t".join([ self.vars[i][2] + '( ' + i + ' );' ])
                 initVar = ''
                 if self.vars[i][1] != '': # требуется инициализация
                     initVar = ' = ' + self.vars[i][1]
                 variables += '\n\t' + "\n\t".join([ self.vars[i][0] + ' ' + i + initVar + ';' ])
-        return self.definition + variables + body + freeVar + self._end()
+        return self.definition + variables + body + self._end()
 
     def __copy__(self):
         """
@@ -89,22 +86,11 @@ class Construct(object):
             self.definition = prefix + ' ' + self.definition
             self.prefix = True
 
-    def addVar(self, typeVar, nameVar, initVar = 'tcg_temp_new()', freeVar = 'tcg_temp_free'):
+    def addVar(self, typeVar, nameVar, initVar = ''):
         """
         """
-        if self._conditionTCG and initVar == 'tcg_temp_new()':
-            initVar = 'tcg_temp_local_new()'
-        self.vars.update({nameVar : [typeVar, initVar, freeVar]})
+        self.vars.update({nameVar : [typeVar, initVar]})
 
-    def startConditionTCG(self):
-        """
-        """
-        self._conditionTCG = True
-
-    def endConditionTCG(self):
-        """
-        """
-        self._conditionTCG = False
 
 class Macros(Construct):
     """
@@ -183,7 +169,6 @@ class Function(Construct):
         """
         """
         self.vars = {}
-        self._conditionTCG = False
         self._type = type
         self._name = name
         self._argv = argv
@@ -208,12 +193,12 @@ class Struct(Construct):
     """
         Класс для описания структур
     """
-    def __init__(self, name, declaretion = True):
+    def __init__(self, name, declaration = True):
         """
         """
         self.vars = {}
         self._name = name
-        self._declaretion = declaretion
+        self._declaration = declaration
         self.definition = 'struct ' + self._name + ' {'
         self.body = ''
         self.detailes = []
@@ -221,7 +206,7 @@ class Struct(Construct):
     def __copy__(self):
         """
         """
-        newone = type(self)(self._name, self._declaretion)
+        newone = type(self)(self._name, self._declaration)
         newone.__dict__.update(self.__dict__)
         return newone
 
@@ -229,7 +214,46 @@ class Struct(Construct):
         """
             Переопределенный метод для иного завершения конструкции
         """
-        return '\n}' + (' ' + self._name)*self._declaretion + ';'
+        return '\n}' + (' ' + self._name)*self._declaration + ';'
+
+
+class Enum(Construct):
+    """
+        Класс для описания перечислений
+    """
+    def __init__(self, name = '', declaration = False):
+        """
+        """
+        self.vars = {}
+        self._name = name
+        self._declaration = declaration
+        self.definition = 'enum ' + name + ' {'
+        self.body = ''
+        self.detailes = []
+
+    def __copy__(self):
+        """
+        """
+        newone = type(self)(self._name, self._declaration)
+        newone.__dict__.update(self.__dict__)
+        return newone
+
+    def _return(self):
+        variables = ''
+        body = self._getBody()
+        if len(self.vars) > 0:
+            for i in self.vars:
+                initVar = ''
+                if self.vars[i][1] != '': # требуется инициализация
+                    initVar = ' = ' + self.vars[i][1]
+                variables += '\n\t' + "\n\t".join([ self.vars[i][0] + ' ' + i + initVar + ',' ])
+        return self.definition + variables + body + self._end()
+
+    def _end(self):
+        """
+            Переопределенный метод для иного завершения конструкции
+        """
+        return '\n}' + (' ' + self._name)*self._declaration + ';'
 
 
 class Line(Construct):
@@ -282,7 +306,7 @@ class Comment(Construct):
         """
         self.vars = {}
         self._name = name
-        self.definition = '//\n// ' + self._name
+        self.definition = '/*\n * ' + '\n * '.join(self._name.__str__().split('\n'))
         self.definition = self.definition.strip()
         self.body = ''
         self.detailes = []
@@ -295,13 +319,13 @@ class Comment(Construct):
         return newone
 
     def add(self, item):
-        pass
+        self.definition += '\n * ' + '\n * '.join(item.__str__().split('\n'))
 
     def _end(self):
         """
             Переопределенный метод для иного завершения конструкции
         """
-        return '\n//'
+        return '\n */'
 
 
 class Define(Macros):
@@ -438,7 +462,6 @@ class If(Construct):
         self._cond = cond
         self._arg2 = arg2
         self.vars = {}
-        self._conditionTCG = False
         self._else = False
         if cond:
             cond = ' ' + cond
