@@ -1,4 +1,6 @@
 ## generatorConstructions
+[![Contributors](https://img.shields.io/github/contributors/mperov/generatorConstructionsC?label=Contributors)](https://github.com/mperov/generatorConstructionsC/graphs/contributors)
+
 It allows to generate any constructions of programming language C from Python code.
 
 ## How to use
