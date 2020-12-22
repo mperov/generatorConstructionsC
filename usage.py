@@ -53,4 +53,4 @@ if __name__ == "__main__":
     source.add(ifndef)
     source.add(struct)
     source.add(func)
-    print source
+    print(source)
